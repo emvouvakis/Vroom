@@ -14,12 +14,6 @@ Vroom is a real-time chat application built with FastAPI and WebSocket, allowing
 
 ## Installation
 
-### Prerequisites
-
-Ensure you have Python 3.7+ installed on your system.
-
-### Setup
-
 1. **Clone the Repository**
 
     ```bash
