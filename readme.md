@@ -23,7 +23,7 @@ Ensure you have Python 3.7+ installed on your system.
 1. **Clone the Repository**
 
     ```bash
-    git clone https://github.com/yourusername/vroom.git
+    git clone https://github.com/emvouvakis/Vroom.git
     cd vroom
     ```
 
