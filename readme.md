@@ -10,7 +10,6 @@ Vroom is a real-time chat application built with FastAPI and WebSocket, allowing
 - **Join Rooms**: Users can join existing rooms by entering the room ID and password.
 - **Real-Time Messaging**: Users can send and receive messages in real-time within rooms.
 - **User Management**: Each user has a unique username within a room.
-- **Error Handling**: Provides user feedback in case of errors.
 
 ## Installation
 
