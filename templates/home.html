@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vroom</title>
+    <link rel="stylesheet" href="/static/css/home-style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+</head>
+<body>
+
+    <div class="tab-container">
+        <div class="tabs-wrapper">
+            <div class="tab active" id="create-room-tab" role="tab" aria-controls="create-room-form" tabindex="0">Create</div>
+            <div class="tab" id="join-room-tab" role="tab" aria-controls="join-room-form" tabindex="0">Join</div>
+        </div>
+    </div>
+
+    <div id="create-room-form" class="form-container" role="tabpanel" aria-labelledby="create-room-tab">
+        <h2>Create a New Room</h2>
+        <form id="create-form" action="/create-room" method="post">
+            <label for="create-username">Username:</label>
+            <input type="text" id="create-username" name="username" maxlength="8" placeholder="Username" autocomplete="username" required>
+            <label for="create-password">Room Password:</label>
+            <input type="password" id="create-password" name="password" placeholder="Room Password" autocomplete="new-password" required>
+            <button type="submit">Create Room</button>
+        </form>
+    </div>
+
+    <div id="join-room-form" class="form-container" role="tabpanel" aria-labelledby="join-room-tab" style="display: none;">
+        <h2>Join an Existing Room</h2>
+        <form id="join-form" action="/join-room-by-id" method="post">
+            <label for="join-room_id">Room ID:</label>
+            <input type="text" id="join-room_id" name="room_id" placeholder="Room ID" required>
+            <label for="join-username">Username:</label>
+            <input type="text" id="join-username" name="username" placeholder="Username" autocomplete="username" required>
+            <label for="join-password">Room Password:</label>
+            <input type="password" id="join-password" name="password" placeholder="Room Password" autocomplete="current-password" required>
+            <button type="submit">Join Room</button>
+        </form>
+    </div>
+
+    <!-- Error Message Placeholder -->
+    <div class="error-container">
+        <div class="error-message" id="error-message"></div>
+    </div>
+
+    <script>
+        // Function to display error messages
+        function showError(message) {
+            const errorMessageElement = document.getElementById('error-message');
+            if (errorMessageElement) {
+                errorMessageElement.textContent = message;
+                errorMessageElement.style.display = 'block';
+                errorMessageElement.style.opacity = '1'; // Ensure opacity is set to fully visible
+
+                // Hide the error message after a delay
+                setTimeout(function() {
+                    errorMessageElement.style.opacity = '0'; // Start fade out
+                    setTimeout(function() {
+                        errorMessageElement.style.display = 'none'; // Hide after fade out
+                    }, 1000); // Wait for the transition to complete
+                }, 3000); // Show message for 3 seconds
+            }
+        }
+
+        // Check if there is an error message from the server
+        window.onload = function() {
+            const errorMessage = '{{ error_message }}'; // Ensure error_message is safely embedded
+            if (errorMessage) {
+                showError(errorMessage);
+            }
+        };
+
+    </script>
+
+    <style>
+        .error-message {
+            display: none;
+            color: #ff4d4d;
+            background-color: #ffe6e6;
+            border: 1px solid #ff4d4d;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            opacity: 1;
+            transition: opacity 1s ease-out; /* Smooth transition for hiding */
+            animation: fadeOut 3s forwards; /* Start fade-out animation */
+        }
+    </style>
+
+    <script src="/static/js/home-script.js"></script>
+
+    
+</body>
+</html>

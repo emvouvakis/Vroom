@@ -1,0 +1,244 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    padding: 0;
+    background-color: #f0f0f0;
+}
+
+#room-id {
+    font-size: 1.2em;
+}
+
+#user-list-container {
+    width: 200px; /* Set a fixed width */
+    max-width: 200px;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow-y: auto; /* Allow scrolling if the list is long */
+    max-height: 290px; /* Limit the height */
+}
+
+#user-list-container h3 {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center; /* Center-align the heading */
+    border-bottom: 1px solid #ddd; /* Add a border below the heading */
+    padding-bottom: 10px;
+}
+
+#user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Add space between users */
+}
+
+#user-list p {
+    margin: 0;
+    padding: 10px;
+    font-size: 16px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    color: #007bff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#user-list p:hover {
+    background-color: #e2e6ea;
+}
+
+#user-list p::before {
+    content: "🟢"; /* Add a green dot to indicate online status */
+    font-size: 10px;
+}
+
+/* WebKit-based browsers (Chrome, Safari) */
+#user-list-container::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+#user-list-container::-webkit-scrollbar-track {
+    background: #e9ecef; /* Background of the scrollbar track */
+    border-radius: 10px;
+}
+
+#user-list-container::-webkit-scrollbar-thumb {
+    background: #007bff; /* Color of the scrollbar thumb */
+    border-radius: 10px;
+}
+
+#user-list-container::-webkit-scrollbar-thumb:hover {
+    background: #0056b3; /* Color of the scrollbar thumb on hover */
+}
+
+#toggle-sidebar {
+    top: 15px;
+    left: 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%; /* Make it circular */
+    cursor: pointer;
+    z-index: 200;
+    font-size: 1.5em; /* Increase font size for better visibility */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+    width: 60px;
+    height: 60px;
+}
+
+#toggle-sidebar:hover {
+    background-color: #0056b3; /* Darker background color on hover */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+}
+
+#logout-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.5em;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+#logout-btn:hover {
+    background-color: #c82333;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+#chat-log {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fff;
+    height: 300px;
+    overflow-y: scroll;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Optional: Adds space between messages */
+}
+
+/* WebKit-based browsers (Chrome, Safari) */
+#chat-log::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+#chat-log::-webkit-scrollbar-track {
+    background: #e9ecef; /* Background of the scrollbar track */
+    border-radius: 10px;
+}
+
+#chat-log::-webkit-scrollbar-thumb {
+    background: #007bff; /* Color of the scrollbar thumb */
+    border-radius: 10px;
+}
+
+#chat-log::-webkit-scrollbar-thumb:hover {
+    background: #0056b3; /* Color of the scrollbar thumb on hover */
+}
+
+#chat-input {
+    width: calc(100% - 100px);
+    padding: 10px;
+    /* margin-right: 10px; */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#send-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+}
+
+#send-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Common styling for messages */
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 60%; /* Limit the width of the messages */
+    margin-bottom: 5px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f1f1f1;
+    word-wrap: break-word;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message p {
+    margin: 2px 0; /* Separate username, message, and timestamp */
+}
+
+/* Styling for the current user's message */
+.current-user {
+    align-self: flex-end;
+    background-color: #e9ecef;
+}
+
+/* Styling for other users' messages */
+.other-user {
+    align-self: flex-start;
+    background-color: #d1e7dd;
+}
+
+/* Styling for the username */
+.username {
+    font-weight: bold;
+    font-size: 14px;
+    color: #007bff;
+    /* margin-bottom: 5px; */
+}
+
+/* Styling for the message text */
+.message-text {
+    font-size: 16px;
+    color: #333;
+}
+
+/* Styling for the timestamp */
+.timestamp {
+    font-size: 12px;
+    color: #888;
+    /* margin-top: 5px; */
+    text-align: right; /* Align the timestamp to the right */
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+.clipboard-btn {
+    border: none;
+    font-size: 1.1em;
+    color: #007bff;
+    cursor: pointer;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.clipboard-btn:hover {
+    color: #0056b3; /* Darker color on hover */
+    transform: scale(1.1); /* Slightly enlarge the button on hover */
+}
