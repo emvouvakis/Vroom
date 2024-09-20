@@ -1,5 +1,7 @@
 # Vroom - FastAPI WebSocket Chat Application
 
+👉 [![Cloud Run](https://img.shields.io/badge/Cloud_Run-gray?style=flat&logo=google-cloud)](https://vroom-288207980166.us-central1.run.app) 👈
+
 ## Overview
 
 Vroom is a real-time chat application built with FastAPI and WebSocket, allowing users to create and join chat rooms. This application supports creating rooms with passwords, joining existing rooms, and exchanging messages in real-time. **The messages are stored encrytpted in memory until they are recieved**.
@@ -12,6 +14,8 @@ Vroom is a real-time chat application built with FastAPI and WebSocket, allowing
 - **User Management**: Each user has a unique username within a room.
 
 ## Installation
+
+#### Git:
 
 1. **Clone the Repository**
 
@@ -46,6 +50,14 @@ Vroom is a real-time chat application built with FastAPI and WebSocket, allowing
     ```
 
     The application will be accessible at **`https://127.0.0.1:8000/`**.
+
+#### Docker:
+
+```bash
+docker pull emvouvakis/vroom:latest
+docker run -d -p 8000:8000 emvouvakis/vroom:latest
+```
+
 
 ## Usage
 
