@@ -1,5 +1,5 @@
 // Get roomHash
-const roomHash = window.room_hash
+const roomHash = window.room_hash;
 let ws;
 let username;
 
@@ -53,18 +53,18 @@ function showCopyFeedback() {
 }
 
 function setupWebSocket() {
-    ws = new WebSocket(`ws://${location.host}/ws/${roomHash}`);
+    ws = new WebSocket(`wss://${location.host}/ws/${roomHash}`);
 
     ws.onopen = function() {
         console.log("Connected to WebSocket.");
-        
+
         // Check sessionStorage for saved credentials
         let password = sessionStorage.getItem("password");
         username = sessionStorage.getItem("username");
 
         // If not found in sessionStorage, redirect to the homepage
         if (!password || !username) {
-            window.location.href = `http://${location.host}`; // Redirect to the homepage
+            window.location.href = `https://${location.host}`; // Redirect to the homepage
             return; // Exit the function to prevent further execution
         }
 
@@ -88,7 +88,7 @@ function setupWebSocket() {
         return `${datePart} ${timePart}`;
     }
 
-    ws.onmessage = function(event) {
+    ws.onmessage = async function(event) {
         const chatLog = document.getElementById("chat-log");
         const parsedData = JSON.parse(event.data);
         const message = document.createElement("div");
@@ -96,10 +96,11 @@ function setupWebSocket() {
         const messageText = document.createElement("p");
         const timestamp = document.createElement("div");
 
+        // Decrypt the message
+        const decryptedMessage = await decryptMessage(parsedData.text, sessionStorage.getItem("password"), roomHash);
+
         // Convert UTC timestamp to local time and format
         const localTime = formatDate(parsedData.timestamp);
-
-        console.log(parsedData.username)
 
         // Determine if the message is from the current user
         const isCurrentUser = parsedData.username === username;
@@ -111,7 +112,7 @@ function setupWebSocket() {
         usernameBox.textContent = parsedData.username;
 
         messageText.className = "message-text";
-        messageText.textContent = parsedData.text;
+        messageText.textContent = decryptedMessage; // Show decrypted message
 
         timestamp.className = "timestamp";
         timestamp.textContent = localTime;
@@ -124,7 +125,6 @@ function setupWebSocket() {
 
         updateUserList();
     };
-
 
     ws.onerror = function(event) {
         console.error("WebSocket error:", event);
@@ -147,16 +147,107 @@ function displayError(message) {
     errorMessageDiv.textContent = message;
 }
 
-document.getElementById("send-btn").onclick = function() {
+// Function to encrypt messages
+async function encryptMessage(message, password, salt) {
+    const encoder = new TextEncoder();
+    const passwordKey = await window.crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+
+    const saltBuffer = encoder.encode(salt);
+    const keyMaterial = await window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: saltBuffer,
+            iterations: 100000,
+            hash: "SHA-256",
+        },
+        passwordKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt"]
+    );
+
+    const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
+    const encryptedMessage = await window.crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv,
+        },
+        keyMaterial,
+        encoder.encode(message)
+    );
+
+    // Return the encrypted message as an ArrayBuffer along with the IV
+    return { encryptedMessage: Array.from(new Uint8Array(encryptedMessage)), iv: Array.from(iv) };
+}
+
+// Function to decrypt messages
+async function decryptMessage(encryptedData, password, salt) {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const passwordKey = await window.crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+
+    const saltBuffer = encoder.encode(salt);
+    const keyMaterial = await window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: saltBuffer,
+            iterations: 100000,
+            hash: "SHA-256",
+        },
+        passwordKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+    );
+
+    const encryptedArray = Uint8Array.from(encryptedData);
+    const iv = encryptedArray.slice(0, 12); // Extract IV from the message
+    const encryptedMessage = encryptedArray.slice(12); // Extract encrypted message
+
+    try {
+        const decryptedMessage = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv,
+            },
+            keyMaterial,
+            encryptedMessage
+        );
+
+        return decoder.decode(decryptedMessage);
+    } catch (err) {
+        console.error("Decryption failed:", err);
+        return "Decryption error"; // Return an error message
+    }
+}
+
+document.getElementById("send-btn").onclick = async function() {
     const input = document.getElementById("chat-input");
     const messageText = input.value.trim();
+
     if (messageText && ws.readyState === WebSocket.OPEN) {
+        const password = sessionStorage.getItem("password");
+        const { encryptedMessage, iv } = await encryptMessage(messageText, password, roomHash);
+        
         const message = JSON.stringify({
             type: 'message',
-            text: messageText
+            text: [...iv, ...encryptedMessage], // Send IV + Encrypted message
         });
+        
         ws.send(message);
-        input.value = "";
+        input.value = ""; // Clear the input field
     } else {
         displayError("Cannot send an empty message or WebSocket is not open.");
     }
@@ -169,13 +260,9 @@ document.getElementById("chat-input").addEventListener("keypress", function(even
     }
 });
 
-
 document.addEventListener('DOMContentLoaded', function() {
-    
     setupWebSocket();
-
 });
-
 
 // Fetch and display connected users
 async function updateUserList() {
@@ -216,5 +303,5 @@ document.getElementById('logout-btn').addEventListener('click', function() {
     // Clear session storage and redirect to login page
 
     sessionStorage.clear();
-    window.location.href = `http://${location.host}`; // Redirect to the homepage
+    window.location.href = `https://${location.host}`; // Redirect to the homepage
 });
