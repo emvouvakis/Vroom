@@ -1,6 +1,6 @@
 # Vroom - FastAPI WebSocket Chat Application
 
-👉 [![Cloud Run](https://img.shields.io/badge/Cloud_Run-gray?style=flat&logo=google-cloud)](https://vroom-288207980166.us-central1.run.app) 👈
+👉 [![Cloud Run](https://img.shields.io/badge/Cloud_Run-gray?style=flat&logo=google-cloud)](https://vroom-latest-288207980166.us-central1.run.app) 👈
 
 ## Overview
 
