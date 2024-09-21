@@ -55,6 +55,9 @@ function showCopyFeedback() {
 function setupWebSocket() {
     ws = new WebSocket(`wss://${location.host}/ws/${roomHash}`);
 
+    // Load the sound file
+    const notificationSound = new Audio(`https://${location.host}/static/mp3/message-notification.mp3`);
+
     ws.onopen = function() {
         console.log("Connected to WebSocket.");
 
@@ -122,6 +125,11 @@ function setupWebSocket() {
         message.appendChild(timestamp);
         chatLog.appendChild(message);
         chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll to bottom
+
+        // Play notification sound when receiving a message
+        if (!isCurrentUser) {
+            notificationSound.play();
+        }
 
         updateUserList();
     };
