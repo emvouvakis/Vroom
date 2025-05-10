@@ -52,169 +52,94 @@ function showCopyFeedback() {
     }, 1500);
 }
 
-// Image send button logic
-document.getElementById('image-btn').addEventListener('click', function() {
-    document.getElementById('image-input').click();
-});
+// Function to encrypt messages
+async function encryptMessage(message, password, salt) {
+    const encoder = new TextEncoder();
+    const passwordKey = await window.crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
 
-// Camera button logic
-document.getElementById('camera-btn').addEventListener('click', function() {
-    // Create a modal for camera preview and capture
-    const cameraModal = document.createElement('div');
-    cameraModal.id = 'camera-modal';
+    const saltBuffer = encoder.encode(salt);
+    const keyMaterial = await window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: saltBuffer,
+            iterations: 100000,
+            hash: "SHA-256",
+        },
+        passwordKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt"]
+    );
 
-    // Video element for live preview
-    const video = document.createElement('video');
-    video.autoplay = true;
+    const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
+    const encryptedMessage = await window.crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv,
+        },
+        keyMaterial,
+        encoder.encode(message)
+    );
 
-    // Capture button
-    const captureBtn = document.createElement('button');
-    captureBtn.textContent = 'Capture';
+    // Return the encrypted message as an ArrayBuffer along with the IV
+    return { encryptedMessage: Array.from(new Uint8Array(encryptedMessage)), iv: Array.from(iv) };
+}
 
-    // Cancel button
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
+// Function to decrypt messages
+async function decryptMessage(encryptedData, password, salt) {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const passwordKey = await window.crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
 
-    // Button container
-    const btnContainer = document.createElement('div');
-    btnContainer.className = 'camera-btn-container';
-    btnContainer.appendChild(captureBtn);
-    btnContainer.appendChild(cancelBtn);
+    const saltBuffer = encoder.encode(salt);
+    const keyMaterial = await window.crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: saltBuffer,
+            iterations: 100000,
+            hash: "SHA-256",
+        },
+        passwordKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+    );
 
-    // Modal content
-    const content = document.createElement('div');
-    content.style.display = 'flex';
-    content.style.flexDirection = 'column';
-    content.style.alignItems = 'center';
-    content.appendChild(video);
-    content.appendChild(btnContainer);
+    const encryptedArray = Uint8Array.from(encryptedData);
+    const iv = encryptedArray.slice(0, 12); // Extract IV from the message
+    const encryptedMessage = encryptedArray.slice(12); // Extract encrypted message
 
-    cameraModal.appendChild(content);
-    document.body.appendChild(cameraModal);
+    try {
+        const decryptedMessage = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv,
+            },
+            keyMaterial,
+            encryptedMessage
+        );
 
-    // Access the camera
-    let stream;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(s => {
-            stream = s;
-            video.srcObject = stream;
-        })
-        .catch(err => {
-            alert('Could not access camera: ' + err);
-            document.body.removeChild(cameraModal);
-        });
-
-    // Capture logic
-    captureBtn.onclick = async function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const base64Image = canvas.toDataURL('image/png');
-
-        // Stop the camera
-        stream.getTracks().forEach(track => track.stop());
-        document.body.removeChild(cameraModal);
-
-        // Encrypt and send the image
-        const password = sessionStorage.getItem("password");
-        const { encryptedMessage, iv } = await encryptMessage(base64Image, password, roomHash);
-
-        const message = JSON.stringify({
-            type: 'image',
-            text: [...iv, ...encryptedMessage],
-        });
-
-        ws.send(message);
-    };
-
-    // Cancel logic
-    cancelBtn.onclick = function() {
-        if (stream) stream.getTracks().forEach(track => track.stop());
-        document.body.removeChild(cameraModal);
-    };
-});
-
-// Handle image selection/capture
-document.getElementById('image-input').addEventListener('change', async function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const base64Image = e.target.result;
-        const password = sessionStorage.getItem("password");
-        const { encryptedMessage, iv } = await encryptMessage(base64Image, password, roomHash);
-
-        const message = JSON.stringify({
-            type: 'image',
-            text: [...iv, ...encryptedMessage], // Send IV + Encrypted image data
-        });
-
-        ws.send(message);
-    };
-    reader.readAsDataURL(file);
-});
-
-// Add a Record button
-// const recordBtn = document.createElement('button');
-// recordBtn.id = 'record-btn';
-// recordBtn.title = 'Record Audio';
-// recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
-recordBtn = document.getElementById('record-btn')//.before(recordBtn);
-
-let mediaRecorder;
-let audioChunks = [];
-let isRecording = false;
-
-recordBtn.addEventListener('click', async function() {
-    if (!isRecording) {
-        // Start recording
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert('Audio recording not supported in this browser.');
-            return;
-        }
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-            mediaRecorder.ondataavailable = e => {
-                if (e.data.size > 0) audioChunks.push(e.data);
-            };
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.onloadend = async function() {
-                    const base64Audio = reader.result; // Data URL
-                    const password = sessionStorage.getItem("password");
-                    const { encryptedMessage, iv } = await encryptMessage(base64Audio, password, roomHash);
-                    const message = JSON.stringify({
-                        type: 'audio',
-                        text: [...iv, ...encryptedMessage],
-                    });
-                    ws.send(message);
-                };
-                reader.readAsDataURL(audioBlob);
-            };
-            mediaRecorder.start();
-            isRecording = true;
-            recordBtn.innerHTML = '<i class="fa fa-stop"></i>';
-            recordBtn.style.backgroundColor = 'red';
-        } catch (err) {
-            alert('Could not access microphone: ' + err);
-        }
-    } else {
-        // Stop recording
-        mediaRecorder.stop();
-        isRecording = false;
-        recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
-        recordBtn.style.backgroundColor = '#28a745';
+        return decoder.decode(decryptedMessage);
+    } catch (err) {
+        console.error("Decryption failed:", err);
+        return "Decryption error"; // Return an error message
     }
-});
+}
 
 function setupWebSocket() {
-    ws = new WebSocket(`ws://${location.host}/ws/${roomHash}`);
+    ws = new WebSocket(`wss://${location.host}/ws/${roomHash}`);
 
     // Load the sound file
     const notificationSound = new Audio(`https://${location.host}/static/mp3/message-notification.mp3`);
@@ -228,7 +153,7 @@ function setupWebSocket() {
 
         // If not found in sessionStorage, redirect to the homepage
         if (!password || !username) {
-            window.location.href = `http://${location.host}`; // Redirect to the homepage
+            window.location.href = `https://${location.host}`; // Redirect to the homepage
             return; // Exit the function to prevent further execution
         }
 
@@ -339,124 +264,12 @@ function setupWebSocket() {
 function displayError(message) {
     const errorMessageDiv = document.getElementById("error-message");
     errorMessageDiv.textContent = message;
+    errorMessageDiv.style.display = "block";
+    setTimeout(() => {
+        errorMessageDiv.textContent = "";
+        errorMessageDiv.style.display = "none";
+    }, 2000);
 }
-
-// Function to encrypt messages
-async function encryptMessage(message, password, salt) {
-    const encoder = new TextEncoder();
-    const passwordKey = await window.crypto.subtle.importKey(
-        "raw",
-        encoder.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    );
-
-    const saltBuffer = encoder.encode(salt);
-    const keyMaterial = await window.crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: saltBuffer,
-            iterations: 100000,
-            hash: "SHA-256",
-        },
-        passwordKey,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt"]
-    );
-
-    const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Initialization vector
-    const encryptedMessage = await window.crypto.subtle.encrypt(
-        {
-            name: "AES-GCM",
-            iv: iv,
-        },
-        keyMaterial,
-        encoder.encode(message)
-    );
-
-    // Return the encrypted message as an ArrayBuffer along with the IV
-    return { encryptedMessage: Array.from(new Uint8Array(encryptedMessage)), iv: Array.from(iv) };
-}
-
-// Function to decrypt messages
-async function decryptMessage(encryptedData, password, salt) {
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-    const passwordKey = await window.crypto.subtle.importKey(
-        "raw",
-        encoder.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    );
-
-    const saltBuffer = encoder.encode(salt);
-    const keyMaterial = await window.crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt: saltBuffer,
-            iterations: 100000,
-            hash: "SHA-256",
-        },
-        passwordKey,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["decrypt"]
-    );
-
-    const encryptedArray = Uint8Array.from(encryptedData);
-    const iv = encryptedArray.slice(0, 12); // Extract IV from the message
-    const encryptedMessage = encryptedArray.slice(12); // Extract encrypted message
-
-    try {
-        const decryptedMessage = await window.crypto.subtle.decrypt(
-            {
-                name: "AES-GCM",
-                iv: iv,
-            },
-            keyMaterial,
-            encryptedMessage
-        );
-
-        return decoder.decode(decryptedMessage);
-    } catch (err) {
-        console.error("Decryption failed:", err);
-        return "Decryption error"; // Return an error message
-    }
-}
-
-document.getElementById("send-btn").onclick = async function() {
-    const input = document.getElementById("chat-input");
-    const messageText = input.value.trim();
-
-    if (messageText && ws.readyState === WebSocket.OPEN) {
-        const password = sessionStorage.getItem("password");
-        const { encryptedMessage, iv } = await encryptMessage(messageText, password, roomHash);
-        
-        const message = JSON.stringify({
-            type: 'message',
-            text: [...iv, ...encryptedMessage], // Send IV + Encrypted message
-        });
-        
-        ws.send(message);
-        input.value = ""; // Clear the input field
-    } else {
-        displayError("Cannot send an empty message or WebSocket is not open.");
-    }
-};
-
-document.getElementById("chat-input").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        document.getElementById("send-btn").click();
-        event.preventDefault();
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    setupWebSocket();
-});
 
 // Fetch and display connected users
 async function updateUserList() {
@@ -500,23 +313,8 @@ document.getElementById('logout-btn').addEventListener('click', function() {
     window.location.href = `https://${location.host}`; // Redirect to the homepage
 });
 
-// Image modal logic
-const imageModal = document.createElement('div');
-imageModal.id = 'image-modal';
-imageModal.style.display = 'none';
-imageModal.style.position = 'fixed';
-imageModal.style.zIndex = '1000';
-imageModal.style.left = '0';
-imageModal.style.top = '0';
-imageModal.style.width = '100vw';
-imageModal.style.height = '100vh';
-imageModal.style.background = 'rgba(0,0,0,0.8)';
-imageModal.style.alignItems = 'center';
-imageModal.style.justifyContent = 'center';
-imageModal.innerHTML = '<img id="modal-img" src="" style="max-width:90vw; max-height:90vh; border-radius:8px;">';
-document.body.appendChild(imageModal);
-
-const modalImg = imageModal.querySelector('#modal-img'); // Always get from modal
+const imageModal = document.getElementById('image-modal');
+const modalImg = document.getElementById('modal-img');
 
 // Close modal on click
 imageModal.onclick = function() {
@@ -530,4 +328,141 @@ document.getElementById("chat-log").addEventListener("click", function(event) {
         modalImg.src = event.target.src;
         imageModal.style.display = 'flex';
     }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // All your event listeners here
+
+    document.getElementById('image-btn').addEventListener('click', function() {
+        document.getElementById('image-input').click();
+    });
+
+    document.getElementById('camera-btn').addEventListener('click', function() {
+        // Create a modal for camera preview and capture
+        const cameraModal = document.createElement('div');
+        cameraModal.id = 'camera-modal';
+
+        // Video element for live preview
+        const video = document.createElement('video');
+        video.autoplay = true;
+
+        // Capture button
+        const captureBtn = document.createElement('button');
+        captureBtn.textContent = 'Capture';
+
+        // Cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+
+        // Button container
+        const btnContainer = document.createElement('div');
+        btnContainer.className = 'camera-btn-container';
+        btnContainer.appendChild(captureBtn);
+        btnContainer.appendChild(cancelBtn);
+
+        // Modal content
+        const content = document.createElement('div');
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+        content.style.alignItems = 'center';
+        content.appendChild(video);
+        content.appendChild(btnContainer);
+
+        cameraModal.appendChild(content);
+        document.body.appendChild(cameraModal);
+
+        // Access the camera
+        let stream;
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(s => {
+                stream = s;
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                alert('Could not access camera: ' + err);
+                document.body.removeChild(cameraModal);
+            });
+
+        // Capture logic
+        captureBtn.onclick = async function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const base64Image = canvas.toDataURL('image/png');
+
+            // Stop the camera
+            stream.getTracks().forEach(track => track.stop());
+            document.body.removeChild(cameraModal);
+
+            // Encrypt and send the image
+            const password = sessionStorage.getItem("password");
+            const { encryptedMessage, iv } = await encryptMessage(base64Image, password, roomHash);
+
+            const message = JSON.stringify({
+                type: 'image',
+                text: [...iv, ...encryptedMessage],
+            });
+
+            ws.send(message);
+        };
+
+        // Cancel logic
+        cancelBtn.onclick = function() {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            document.body.removeChild(cameraModal);
+        };
+    });
+
+    document.getElementById('record-btn').addEventListener('click', async function() {
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        if (!isRecording) {
+            // Start recording
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Audio recording not supported in this browser.');
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = async function() {
+                        const base64Audio = reader.result; // Data URL
+                        const password = sessionStorage.getItem("password");
+                        const { encryptedMessage, iv } = await encryptMessage(base64Audio, password, roomHash);
+                        const message = JSON.stringify({
+                            type: 'audio',
+                            text: [...iv, ...encryptedMessage],
+                        });
+                        ws.send(message);
+                    };
+                    reader.readAsDataURL(audioBlob);
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                this.innerHTML = '<i class="fa fa-stop"></i>';
+                this.style.backgroundColor = 'red';
+            } catch (err) {
+                alert('Could not access microphone: ' + err);
+            }
+        } else {
+            // Stop recording
+            mediaRecorder.stop();
+            isRecording = false;
+            this.innerHTML = '<i class="fa fa-microphone"></i>';
+            this.style.backgroundColor = '#28a745';
+        }
+    });
+
+    setupWebSocket();
 });
