@@ -289,7 +289,8 @@ async def websocket_endpoint(websocket: WebSocket, room_hash: str):
                     logging.error("Message is not a dictionary.")
                     continue
 
-                if message.get('type') == 'message' or message.get('type') == 'image':
+                # Accept also audio messages
+                if message.get('type') in ('message', 'image', 'audio'):
                     await manager.broadcast({
                         'username': username,
                         'text': message.get('text'),

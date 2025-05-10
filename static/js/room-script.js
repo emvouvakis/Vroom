@@ -157,6 +157,60 @@ document.getElementById('image-input').addEventListener('change', async function
     reader.readAsDataURL(file);
 });
 
+// Add a Record button
+const recordBtn = document.createElement('button');
+recordBtn.id = 'record-btn';
+recordBtn.title = 'Record Audio';
+recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
+document.getElementById('send-btn').before(recordBtn);
+
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+recordBtn.addEventListener('click', async function() {
+    if (!isRecording) {
+        // Start recording
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Audio recording not supported in this browser.');
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onloadend = async function() {
+                    const base64Audio = reader.result; // Data URL
+                    const password = sessionStorage.getItem("password");
+                    const { encryptedMessage, iv } = await encryptMessage(base64Audio, password, roomHash);
+                    const message = JSON.stringify({
+                        type: 'audio',
+                        text: [...iv, ...encryptedMessage],
+                    });
+                    ws.send(message);
+                };
+                reader.readAsDataURL(audioBlob);
+            };
+            mediaRecorder.start();
+            isRecording = true;
+            recordBtn.innerHTML = '<i class="fa fa-stop"></i>';
+        } catch (err) {
+            alert('Could not access microphone: ' + err);
+        }
+    } else {
+        // Stop recording
+        mediaRecorder.stop();
+        isRecording = false;
+        recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
+    }
+});
+
 function setupWebSocket() {
     ws = new WebSocket(`ws://${location.host}/ws/${roomHash}`);
 
@@ -204,8 +258,18 @@ function setupWebSocket() {
         const messageText = document.createElement("p");
         const timestamp = document.createElement("div");
 
+        // --- FIX: Ensure encryptedData is always an array ---
+        let encryptedData = parsedData.text;
+        if (typeof encryptedData === "string") {
+            try {
+                encryptedData = JSON.parse(encryptedData);
+            } catch (e) {
+                // fallback: leave as is
+            }
+        }
+
         // Decrypt the message
-        const decryptedMessage = await decryptMessage(parsedData.text, sessionStorage.getItem("password"), roomHash);
+        const decryptedMessage = await decryptMessage(encryptedData, sessionStorage.getItem("password"), roomHash);
 
         // Convert UTC timestamp to local time and format
         const localTime = formatDate(parsedData.timestamp);
@@ -221,8 +285,13 @@ function setupWebSocket() {
 
         messageText.className = "message-text";
 
-        // Check if it's an image message
-        if (parsedData.type === 'image') {
+        // Check if it's an audio message
+        if (parsedData.type === 'audio') {
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = decryptedMessage;
+            messageText.appendChild(audio);
+        } else if (parsedData.type === 'image') {
             const img = document.createElement('img');
             img.src = decryptedMessage;
             img.style.maxWidth = '200px';
