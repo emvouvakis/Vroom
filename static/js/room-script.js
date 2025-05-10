@@ -57,24 +57,104 @@ document.getElementById('image-btn').addEventListener('click', function() {
     document.getElementById('image-input').click();
 });
 
+// Camera button logic
+document.getElementById('camera-btn').addEventListener('click', function() {
+    // Create a modal for camera preview and capture
+    const cameraModal = document.createElement('div');
+    cameraModal.id = 'camera-modal';
+
+    // Video element for live preview
+    const video = document.createElement('video');
+    video.autoplay = true;
+
+    // Capture button
+    const captureBtn = document.createElement('button');
+    captureBtn.textContent = 'Capture';
+
+    // Cancel button
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+
+    // Button container
+    const btnContainer = document.createElement('div');
+    btnContainer.className = 'camera-btn-container';
+    btnContainer.appendChild(captureBtn);
+    btnContainer.appendChild(cancelBtn);
+
+    // Modal content
+    const content = document.createElement('div');
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.alignItems = 'center';
+    content.appendChild(video);
+    content.appendChild(btnContainer);
+
+    cameraModal.appendChild(content);
+    document.body.appendChild(cameraModal);
+
+    // Access the camera
+    let stream;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(s => {
+            stream = s;
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            alert('Could not access camera: ' + err);
+            document.body.removeChild(cameraModal);
+        });
+
+    // Capture logic
+    captureBtn.onclick = async function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const base64Image = canvas.toDataURL('image/png');
+
+        // Stop the camera
+        stream.getTracks().forEach(track => track.stop());
+        document.body.removeChild(cameraModal);
+
+        // Encrypt and send the image
+        const password = sessionStorage.getItem("password");
+        const { encryptedMessage, iv } = await encryptMessage(base64Image, password, roomHash);
+
+        const message = JSON.stringify({
+            type: 'image',
+            text: [...iv, ...encryptedMessage],
+        });
+
+        ws.send(message);
+    };
+
+    // Cancel logic
+    cancelBtn.onclick = function() {
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        document.body.removeChild(cameraModal);
+    };
+});
+
+// Handle image selection/capture
 document.getElementById('image-input').addEventListener('change', async function(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = async function(e) {
-        const base64Image = e.target.result; // Data URL (base64)
+        const base64Image = e.target.result;
         const password = sessionStorage.getItem("password");
         const { encryptedMessage, iv } = await encryptMessage(base64Image, password, roomHash);
 
         const message = JSON.stringify({
             type: 'image',
-            text: [...iv, ...encryptedMessage], // Send IV + Encrypted image
+            text: [...iv, ...encryptedMessage], // Send IV + Encrypted image data
         });
 
         ws.send(message);
     };
-    reader.readAsDataURL(file); // Read file as base64
+    reader.readAsDataURL(file);
 });
 
 function setupWebSocket() {

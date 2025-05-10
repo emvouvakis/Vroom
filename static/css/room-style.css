@@ -222,8 +222,34 @@ body {
 .timestamp {
     font-size: 12px;
     color: #888;
-    /* margin-top: 5px; */
-    text-align: right; /* Align the timestamp to the right */
+    text-align: right; 
+}
+
+#camera-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+#camera-modal video {
+    max-width: 90vw;
+    max-height: 80vh;
+    border-radius: 8px;
+}
+#camera-modal .camera-btn-container {
+    display: flex;
+    justify-content: center;
+}
+#camera-modal button {
+    margin: 20px;
+    padding: 10px 20px;
+    font-size: 1.2em;
 }
 
 .error {
