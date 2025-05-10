@@ -37,11 +37,24 @@
             </div>
             <div style ="width:-webkit-fill-available">
                 <div id="chat-log"></div>
-                <input id="chat-input" type="text" placeholder="Enter your message here...">
-                <input type="file" id="image-input" accept="image/*" style="display:none;">
-                <button id="image-btn" title="Send Image"><i class="fa fa-image"></i></button>
-                <button id="camera-btn" title="Take Picture"><i class="fa fa-camera"></i></button>
-                <button id="send-btn">Send</button>
+                
+                <div class="input-bar">
+                    <input id="chat-input" type="text" placeholder="Enter your message here...">
+
+                    <!-- <input type="file" id="image-input" accept="image/*" style="display:none;">
+                    <button id="image-btn" title="Send Image"><i class="fa fa-image"></i></button>
+                    <button id="camera-btn" title="Take Picture"><i class="fa fa-camera"></i></button>
+                    <button id="record-btn" title="Record Audio"><i class="fa fa-microphone"></i></button> -->
+                    
+                    <button id="send-btn" title="Send"><i class="fa fa-arrow-right"></i></button>
+                </div>
+
+                <div class="input-bar">
+                    <input type="file" id="image-input" accept="image/*" style="display:none;">
+                    <button id="image-btn" title="Send Image"><i class="fa fa-image"></i></button>
+                    <button id="camera-btn" title="Take Picture"><i class="fa fa-camera"></i></button>
+                    <button id="record-btn" title="Record Audio"><i class="fa fa-microphone"></i></button>
+                </div>
             </div>
         
 

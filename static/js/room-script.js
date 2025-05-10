@@ -158,11 +158,11 @@ document.getElementById('image-input').addEventListener('change', async function
 });
 
 // Add a Record button
-const recordBtn = document.createElement('button');
-recordBtn.id = 'record-btn';
-recordBtn.title = 'Record Audio';
-recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
-document.getElementById('send-btn').before(recordBtn);
+// const recordBtn = document.createElement('button');
+// recordBtn.id = 'record-btn';
+// recordBtn.title = 'Record Audio';
+// recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
+recordBtn = document.getElementById('record-btn')//.before(recordBtn);
 
 let mediaRecorder;
 let audioChunks = [];
@@ -200,6 +200,7 @@ recordBtn.addEventListener('click', async function() {
             mediaRecorder.start();
             isRecording = true;
             recordBtn.innerHTML = '<i class="fa fa-stop"></i>';
+            recordBtn.style.backgroundColor = 'red';
         } catch (err) {
             alert('Could not access microphone: ' + err);
         }
@@ -208,6 +209,7 @@ recordBtn.addEventListener('click', async function() {
         mediaRecorder.stop();
         isRecording = false;
         recordBtn.innerHTML = '<i class="fa fa-microphone"></i>';
+        recordBtn.style.backgroundColor = '#28a745';
     }
 });
 
@@ -484,10 +486,10 @@ document.getElementById('toggle-sidebar').addEventListener('click', function() {
     // Check the current display state and toggle it
     if (userListContainer.style.display == 'none') {
         userListContainer.style.display = 'block';
-        this.textContent = '←'; // Change button text to indicate closing
+        this.innerHTML = '<i class="fa fa-arrow-left"></i>'; // Use Font Awesome left arrow
     } else {
         userListContainer.style.display = 'none';
-        this.textContent = '☰'; // Change button text to indicate opening
+        this.innerHTML = '<i class="fa-solid fa-bars"></i>'; // Change button text to indicate opening
     }
 });
 
