@@ -289,12 +289,13 @@ async def websocket_endpoint(websocket: WebSocket, room_hash: str):
                     logging.error("Message is not a dictionary.")
                     continue
 
-                if message.get('type') == 'message':
+                if message.get('type') == 'message' or message.get('type') == 'image':
                     await manager.broadcast({
                         'username': username,
-                        'text': message.get('text')
+                        'text': message.get('text'),
+                        'type': message.get('type', 'message')
                     }, room_hash)
-                    logging.info(f"Broadcasted message from '{username}' to room '{room_name}'.")
+                    logging.info(f"Broadcasted {message.get('type')} from '{username}' to room '{room_name}'.")
             except WebSocketDisconnect:
                 logging.info(f"WebSocket disconnected for room: {room_hash}")
                 manager.disconnect(websocket, room_hash)

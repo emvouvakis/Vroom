@@ -52,8 +52,33 @@ function showCopyFeedback() {
     }, 1500);
 }
 
+// Image send button logic
+document.getElementById('image-btn').addEventListener('click', function() {
+    document.getElementById('image-input').click();
+});
+
+document.getElementById('image-input').addEventListener('change', async function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const base64Image = e.target.result; // Data URL (base64)
+        const password = sessionStorage.getItem("password");
+        const { encryptedMessage, iv } = await encryptMessage(base64Image, password, roomHash);
+
+        const message = JSON.stringify({
+            type: 'image',
+            text: [...iv, ...encryptedMessage], // Send IV + Encrypted image
+        });
+
+        ws.send(message);
+    };
+    reader.readAsDataURL(file); // Read file as base64
+});
+
 function setupWebSocket() {
-    ws = new WebSocket(`wss://${location.host}/ws/${roomHash}`);
+    ws = new WebSocket(`ws://${location.host}/ws/${roomHash}`);
 
     // Load the sound file
     const notificationSound = new Audio(`https://${location.host}/static/mp3/message-notification.mp3`);
@@ -67,7 +92,7 @@ function setupWebSocket() {
 
         // If not found in sessionStorage, redirect to the homepage
         if (!password || !username) {
-            window.location.href = `https://${location.host}`; // Redirect to the homepage
+            window.location.href = `http://${location.host}`; // Redirect to the homepage
             return; // Exit the function to prevent further execution
         }
 
@@ -115,7 +140,17 @@ function setupWebSocket() {
         usernameBox.textContent = parsedData.username;
 
         messageText.className = "message-text";
-        messageText.textContent = decryptedMessage; // Show decrypted message
+
+        // Check if it's an image message
+        if (parsedData.type === 'image') {
+            const img = document.createElement('img');
+            img.src = decryptedMessage;
+            img.style.maxWidth = '200px';
+            img.style.maxHeight = '200px';
+            messageText.appendChild(img);
+        } else {
+            messageText.textContent = decryptedMessage; // Show decrypted message
+        }
 
         timestamp.className = "timestamp";
         timestamp.textContent = localTime;
@@ -312,4 +347,36 @@ document.getElementById('logout-btn').addEventListener('click', function() {
 
     sessionStorage.clear();
     window.location.href = `https://${location.host}`; // Redirect to the homepage
+});
+
+// Image modal logic
+const imageModal = document.createElement('div');
+imageModal.id = 'image-modal';
+imageModal.style.display = 'none';
+imageModal.style.position = 'fixed';
+imageModal.style.zIndex = '1000';
+imageModal.style.left = '0';
+imageModal.style.top = '0';
+imageModal.style.width = '100vw';
+imageModal.style.height = '100vh';
+imageModal.style.background = 'rgba(0,0,0,0.8)';
+imageModal.style.alignItems = 'center';
+imageModal.style.justifyContent = 'center';
+imageModal.innerHTML = '<img id="modal-img" src="" style="max-width:90vw; max-height:90vh; border-radius:8px;">';
+document.body.appendChild(imageModal);
+
+const modalImg = imageModal.querySelector('#modal-img'); // Always get from modal
+
+// Close modal on click
+imageModal.onclick = function() {
+    imageModal.style.display = 'none';
+    modalImg.src = '';
+};
+
+// Delegate click event for images in chat
+document.getElementById("chat-log").addEventListener("click", function(event) {
+    if (event.target.tagName === 'IMG') {
+        modalImg.src = event.target.src;
+        imageModal.style.display = 'flex';
+    }
 });

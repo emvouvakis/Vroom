@@ -38,11 +38,18 @@
             <div style ="width:-webkit-fill-available">
                 <div id="chat-log"></div>
                 <input id="chat-input" type="text" placeholder="Enter your message here...">
+                <input type="file" id="image-input" accept="image/*" style="display:none;">
+                <button id="image-btn" title="Send Image"><i class="fa fa-image"></i></button>
                 <button id="send-btn">Send</button>
         </div>
         
 
         
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
+        <img id="modal-img" src="" style="max-width:90vw; max-height:90vh; border-radius:8px;">
     </div>
 
     <div class="error" id="error-message"></div>
